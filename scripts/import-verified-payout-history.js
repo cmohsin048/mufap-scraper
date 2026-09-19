@@ -4,11 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { createClient } = require('@supabase/supabase-js');
-const Collector = require('./industry-stats-collector');
-const Storage = require('./payout-storage');
+const Collector = require('../industry-stats-collector');
+const Storage = require('../payout-storage');
 
 async function main() {
-  const directory = path.join(__dirname, 'tmp', 'payout-history');
+  const directory = path.join(__dirname, '..', 'tmp', 'payout-history');
   const audit = JSON.parse(fs.readFileSync(path.join(directory, 'verification.json'), 'utf8'));
   if (audit.status !== 'complete' || audit.chunks.length !== new Collector().buildDateChunks(audit.from, audit.to, 3).length) {
     throw new Error('A complete historical verification is required before importing snapshots.');

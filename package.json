@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node collector.js",
         "collect": "node collector.js",
-        "test": "node test-queries.js",
+        "test": "node --test test/*.test.js",
         "nav": "node nav-collector.js",
         "nav:check": "node nav-collector.js --dry-run --limit 2",
         "test:nav": "node --test test/nav-collector.test.js",
@@ -24,7 +24,6 @@
         "islamic-finance",
         "supabase"
     ],
-    "author": "Your Name",
     "license": "MIT",
     "dependencies": {
         "@supabase/supabase-js": "^2.39.0",

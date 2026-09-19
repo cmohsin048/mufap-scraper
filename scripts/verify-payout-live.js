@@ -1,5 +1,5 @@
 // Read live data with the web app's public key and confirm it cannot write.
-// Usage: node verify-payout-live.js <path-to-web-app-.env>
+// Usage: node scripts/verify-payout-live.js <path-to-web-app-.env>
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -7,7 +7,7 @@ const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 require('node:dns').setDefaultResultOrder('ipv4first');
-const { loadFundReturns } = require('./payout-data');
+const { loadFundReturns } = require('../payout-data');
 
 async function main() {
   if (!process.argv[2]) throw new Error('Pass the web app .env path; credentials are read locally and never printed.');
@@ -24,7 +24,7 @@ async function main() {
     if (error) throw error;
     return count;
   };
-  const output = path.join(__dirname, 'tmp', 'payout-history', 'live-verification.json');
+  const output = path.join(__dirname, '..', 'tmp', 'payout-history', 'live-verification.json');
   fs.mkdirSync(path.dirname(output), { recursive: true });
   const save = () => fs.writeFileSync(output, JSON.stringify(report, null, 2));
   try {
@@ -62,7 +62,7 @@ async function main() {
       report.funds.push(...results); save();
       console.log(`Verified web reads/calculations for ${report.funds.length}/${funds.length} funds`);
     }
-    const map = require('./fund-profile-map.json');
+    const map = require('../fund-profile-map.json');
     const akd = map.find(r => r.mufap_fund_id === 12813);
     report.disputedPeriod = await loadFundReturns(publicClient, { fundId: akd.fund_id, from: '2024-08-01', to: '2024-08-31' });
     assert.equal(report.disputedPeriod.totalReturnPct, null);

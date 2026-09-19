@@ -157,14 +157,14 @@ Reference: [MUFAP return methodology](https://mufap.com.pk/Upload/WebDoc/Communi
 
 ## Reproducible verification tools
 
-- `node verify-payout-history.js`: read-only full source audit, with local HTML
+- `node scripts/verify-payout-history.js`: read-only full source audit, with local HTML
   snapshots to resume interrupted verification. Refresh snapshots when checking
   for later source corrections.
-- `node build-fund-profile-map.js`: rebuild the numeric identity map from live NAV
+- `node scripts/build-fund-profile-map.js`: rebuild the numeric identity map from live NAV
   data; `--cached` uses the saved public NAV report.
-- `node import-verified-payout-history.js`: import the completed, hash-checked
+- `node scripts/import-verified-payout-history.js`: import the completed, hash-checked
   audit snapshots and read back every range. This performs live writes.
-- `node verify-payout-live.js <web-app-.env-path>`: verify public reads, denied
+- `node scripts/verify-payout-live.js <web-app-.env-path>`: verify public reads, denied
   identical-record writes, return calculations, and large histories. Credentials
   are read locally and never printed. Its date scenarios currently target the
   September 2026 audit dataset.

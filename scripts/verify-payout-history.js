@@ -4,13 +4,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { createClient } = require('@supabase/supabase-js');
-const Collector = require('./industry-stats-collector');
-const Storage = require('./payout-storage');
+const Collector = require('../industry-stats-collector');
+const Storage = require('../payout-storage');
 
 async function main() {
   const collector = new Collector();
   const storage = new Storage(createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY), { quarantineConflicts: true });
-  const directory = path.join(__dirname, 'tmp', 'payout-history');
+  const directory = path.join(__dirname, '..', 'tmp', 'payout-history');
   fs.mkdirSync(directory, { recursive: true });
   const report = { startedAt: new Date().toISOString(), from: '1995-01-01', to: collector.getCurrentDate(),
     mode: 'read-only', chunks: [], status: 'running' };

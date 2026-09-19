@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
-const Collector = require('./industry-stats-collector');
-const Storage = require('./payout-storage');
-const { normalizeName, normalizeFundNameForAMC } = require('./fund-identity');
+const Collector = require('../industry-stats-collector');
+const Storage = require('../payout-storage');
+const { normalizeName, normalizeFundNameForAMC } = require('../fund-identity');
 
 async function main() {
   const c = new Collector();
@@ -14,7 +14,8 @@ async function main() {
     const storage = new Storage(createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY));
     await storage.initialize();
     const url = 'https://www.mufap.com.pk/Industry/IndustryStatDaily?tab=3';
-    const sourceFile = path.join(__dirname, 'tmp', 'profile-map-nav-source.html');
+    const sourceFile = path.join(__dirname, '..', 'tmp', 'profile-map-nav-source.html');
+    fs.mkdirSync(path.dirname(sourceFile), { recursive: true });
     const cached = process.argv.includes('--cached');
     const html = cached ? fs.readFileSync(sourceFile, 'utf8') : await c.mufap.get(url);
     if (!cached) fs.writeFileSync(sourceFile, html);
@@ -39,7 +40,7 @@ async function main() {
         verified_at: fs.statSync(sourceFile).mtime.toISOString(), source: url });
     });
     if (!mapping.size) throw new Error('No verified profile mappings found');
-    fs.writeFileSync(path.join(__dirname, 'fund-profile-map.json'), JSON.stringify([...mapping.values()], null, 2));
+    fs.writeFileSync(path.join(__dirname, '..', 'fund-profile-map.json'), JSON.stringify([...mapping.values()], null, 2));
     console.log(`Verified ${mapping.size} numeric MUFAP profile IDs against the database catalog.`);
   } finally { await c.mufap.close(); }
 }
