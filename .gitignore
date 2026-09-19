@@ -1,0 +1,8 @@
+node_modules/
+.env*
+!.env.example
+.mufap-browser/
+.mufap-payout-browser/
+tmp/
+tmp-*
+*.log

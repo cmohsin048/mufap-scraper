@@ -1,0 +1,40 @@
+{
+    "name": "mufap-shariah-collector",
+    "version": "1.0.0",
+    "description": "Collect Shariah-compliant mutual funds from MUFAP and store in Supabase",
+    "main": "collector.js",
+    "scripts": {
+        "start": "node collector.js",
+        "collect": "node collector.js",
+        "test": "node test-queries.js",
+        "nav": "node nav-collector.js",
+        "nav:check": "node nav-collector.js --dry-run --limit 2",
+        "test:nav": "node --test test/nav-collector.test.js",
+        "payout": "node industrystatecollector.js",
+        "test:payout": "node --test test/payout-collector.test.js",
+        "test:collectors": "node --test test/*.test.js",
+        "test:returns": "node --test test/payout-returns.test.js",
+        "test:payout-db": "node --test test/payout-database.test.js"
+    },
+    "keywords": [
+        "mufap",
+        "mutual-funds",
+        "shariah",
+        "halal",
+        "islamic-finance",
+        "supabase"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+        "@supabase/supabase-js": "^2.39.0",
+        "axios": "^1.6.2",
+        "cheerio": "^1.1.2",
+        "dotenv": "^16.3.1",
+        "playwright-core": "^1.63.0"
+    },
+    "devDependencies": {
+        "@electric-sql/pglite": "^0.5.8",
+        "nodemon": "^3.0.2"
+    }
+}
