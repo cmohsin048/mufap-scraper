@@ -16,15 +16,22 @@ future schema update. Credentials remain in `.env` as `SUPABASE_URL` and
 ## What has been verified
 
 The 1995-01-01 through 2026-09-18 source history was audited in all 127 quarterly
-ranges. The completed live import upserted **26,787** matched payout records and
+ranges. The completed live import upserted **26,989** matched payout records and
 read back every chunk. A repeated January 2020 import verified duplicate-safe
 upserts. No synthetic financial records were inserted into production.
 
 Source exceptions are explicit:
 
-- 202 Shariah source rows from 25 unmatched fund names were outside the existing
-  catalog. These were not assigned to an unrelated fund or silently added as new
-  database funds. See `tmp/payout-unmatched.json` and the import report.
+- The September 19 catalog reconciliation recovered all 202 previously unmatched
+  Shariah payout rows. It added 86 officially classified Shariah funds using MUFAP
+  UUIDs, bringing the retained catalog to 331 funds. No conventional funds were added.
+- All 86 new funds received historical NAV imports: 11,992 records, each verified
+  by database readback. Existing funds were not re-collected in this targeted NAV run.
+- The final live payout audit found 26,989 records across 178 funds, zero duplicate
+  fund/date rows, zero broken fund/AMC identities, zero invalid amounts/dates, and
+  one remaining review interval (AKD). All 331 funds were checked through September 19.
+  The other 153 funds have no reported payouts in the collected history; this is
+  not a declaration that no distributions ever occurred.
 - AKD Islamic Cash Fund has conflicting source values for 2024-08-22: 0.0285 and
   0.0248, both with ex-NAV 50. Neither disputed value was imported. The affected
   fund's coverage is marked `needs_review`.
@@ -42,13 +49,16 @@ Evidence from the completed work:
   hashes, unmatched names, and quarantined conflicts.
 - `tmp/payout-history/import-verification.json`: every imported range and database
   readback result.
-- `tmp/collector-tests.log`: latest offline test results.
+- `tmp/collector-tests.log`: latest offline test results (81 passing tests).
+- `tmp/new-fund-nav-verification.json`: all 86 new funds and NAV readback results.
+- `tmp/payout-post-run-verification.json`: final live database audit.
+- `tmp/catalog-reconciliation-source.json` and `tmp/payout-catalog-plan.json`: official catalog evidence and additions.
 
 ## Matching and source quality
 
 Matching retains fund/AMC identity, plan qualifiers, and pension categories.
-`fund-profile-map.json` records 213 MUFAP numeric profile IDs verified against the
-current NAV report and catalog. These public profile IDs are separate from the
+`fund-profile-map.json` records 299 MUFAP numeric profile IDs verified against the
+official catalog, which supplies both numeric profile IDs and fund UUIDs. These public profile IDs are separate from the
 UUIDs used by `funds` and `daily_nav`. A profile/AMC disagreement stops collection.
 
 Explicit former-name notes and redundant family wrappers are normalized.
@@ -168,3 +178,24 @@ Reference: [MUFAP return methodology](https://mufap.com.pk/Upload/WebDoc/Communi
   identical-record writes, return calculations, and large histories. Credentials
   are read locally and never printed. Its date scenarios currently target the
   September 2026 audit dataset.
+
+## Refreshing the Shariah catalog
+
+`node scripts/reconcile-payout-catalog.js --all-shariah` fetches official identities
+and prepares a dry-run plan. Add `--apply` to insert missing Shariah funds and
+refresh numeric profile mappings after database readback. It retains historical
+funds and rejects identity conflicts. `--cached` reuses a previously fetched local
+source snapshot; omit it for a fresh catalog. Without `--all-shariah`, the command
+only reconciles names in the most recent unmatched payout report.
+
+After adding funds, run `node nav-collector.js` and `node industrystatecollector.js`
+to collect their histories. The NAV collector prioritizes funds without progress.
+The ordinary `node collector.js` catalog collector also supports Cloudflare browser
+fallback now and no longer asks for setup SQL on each run (`node collector.js setup`
+prints setup instructions). Payout collection continues to use the existing catalog
+and does not silently add new funds.
+
+AKD investigation: the official 2025 annual report and historical NAV page were
+checked, but no authoritative daily distribution figure was established for
+2024-08-22. Keep that interval in review until a distribution notice or corrected
+source resolves it. The historical import report retains both disputed amounts.

@@ -20,7 +20,7 @@ The configured database already has the payout schema installed. For a new datab
 
 Run `npm test` (or `npm.cmd test`) for offline collector, return calculation, and local PostgreSQL tests. This command does not write to production.
 
-The completed historical import audited 127 quarterly ranges from 1995-01-01 through 2026-09-18 and upserted 26,787 matched payout records with database readback. Collection targets the existing 245-fund catalog. Unmatched source funds are reported, and one conflicting AKD distribution is quarantined; complete payouts for every source fund cannot be claimed. Details and evidence locations are in the payout instructions.
+The completed historical import audited 127 quarterly ranges from 1995-01-01 through 2026-09-18 and upserted 26,989 matched payout records with database readback. Collection targets the 331-fund catalog. The 202 previously unmatched Shariah payouts were recovered after adding 86 verified funds. Their 11,992 NAV records were also imported and read back. One conflicting AKD distribution remains quarantined; complete payouts for every source fund cannot be claimed. Details and evidence locations are in the payout instructions.
 
 `payout-data.js`, `payout-returns.js`, and their TypeScript declarations are retained for the upcoming web app integration. The web app has not yet been integrated; the final public-access live check remains pending.
 

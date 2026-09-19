@@ -232,6 +232,43 @@ class MufapClient {
     }
   }
 
+  // MUFAP's catalog endpoints are read-only JSON queries sent with POST.
+  async postJson(url, body = null) {
+    const target = new URL(url);
+    if (target.origin !== 'https://www.mufap.com.pk') throw new Error('Unexpected catalog origin.');
+    if (this.closed) throw mufapError('MUFAP_BROWSER_ERROR', 'Collection was cancelled.');
+    let result;
+    if (!this.useBrowser) {
+      const response = await this.fetch(url, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body === null ? null : JSON.stringify(body), signal: AbortSignal.timeout(this.timeoutMs) });
+      result = { status: response.status, headers: response.headers, html: await response.text() };
+      if (isChallenge(result.html, result.headers)) {
+        if (this.mode === 'http') throw mufapError('MUFAP_BLOCKED', 'Catalog requires browser verification.');
+        this.useBrowser = true;
+      }
+    }
+    if (this.useBrowser) {
+      if (!this.page || new URL(this.page.url()).origin !== target.origin) {
+        const page = await this.getBrowser(`${target.origin}/Industry/IndustryStatDaily?tab=3`);
+        if (page.status !== 200) throw mufapError('MUFAP_INVALID_RESPONSE', 'Could not open catalog browser session.');
+      }
+      result = await this.page.evaluate(async ({ url, body, timeoutMs }) => {
+        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: body === null ? null : JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
+        return { status: response.status, headers: Object.fromEntries(response.headers), html: await response.text() };
+      }, { url, body, timeoutMs: this.timeoutMs });
+    }
+    if (isChallenge(result.html, result.headers)) throw mufapError('MUFAP_BLOCKED', 'Catalog browser verification is required.');
+    if (result.status !== 200) throw mufapError('MUFAP_INVALID_RESPONSE', `Catalog returned HTTP ${result.status}.`);
+    let data;
+    try { data = JSON.parse(result.html); } catch { throw mufapError('MUFAP_INVALID_RESPONSE', 'Catalog did not return JSON.'); }
+    if (data.statusCode !== '00' || !Array.isArray(data.data)) {
+      throw mufapError('MUFAP_INVALID_RESPONSE', 'Catalog query failed or returned an unexpected schema.');
+    }
+    return data.data;
+  }
+
   async close() {
     this.closed = true;
     try {

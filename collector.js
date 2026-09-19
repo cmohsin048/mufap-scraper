@@ -7,13 +7,15 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
-const axios = require('axios');
+const { MufapClient } = require('./mufap-client');
+const { isShariahCategory } = require('./payout-catalog');
 require('dotenv').config();
 
 class ShariahFundsCollector {
   constructor(supabaseUrl, supabaseKey) {
     this.supabase = createClient(supabaseUrl, supabaseKey);
     this.mufapBaseUrl = 'https://www.mufap.com.pk';
+    this.mufap = new MufapClient();
     this.stats = {
       totalAmcs: 0,
       totalFunds: 0,
@@ -147,9 +149,8 @@ EXECUTE FUNCTION update_amc_stats();
   async fetchAllAmcs() {
     try {
       console.log('📡 Fetching AMCs from MUFAP...');
-      const response = await axios.post(`${this.mufapBaseUrl}/AMC/GetAMCList`, null, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = { data: { statusCode: '00', data:
+        await this.mufap.postJson(`${this.mufapBaseUrl}/AMC/GetAMCList`) } };
 
       if (response.data.statusCode === '00') {
         const amcs = response.data.data;
@@ -171,11 +172,8 @@ EXECUTE FUNCTION update_amc_stats();
    */
   async fetchFundsForAmc(amcId) {
     try {
-      const response = await axios.post(
-        `${this.mufapBaseUrl}/TopHolding/GetFundNameByAMC`,
-        { AMCId: amcId },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+      const response = { data: { statusCode: '00', data: await this.mufap.postJson(
+        `${this.mufapBaseUrl}/TopHolding/GetFundNameByAMC`, { AMCId: amcId }) } };
 
       if (response.data.statusCode === '00') {
         return response.data.data || [];
@@ -194,9 +192,7 @@ EXECUTE FUNCTION update_amc_stats();
    * Check if a fund is Shariah compliant
    */
   isShariahCompliant(categoryDesc) {
-    if (!categoryDesc) return false;
-    const category = categoryDesc.toLowerCase();
-    return category.includes('shariah') || category.includes('islamic');
+    return isShariahCategory(categoryDesc);
   }
 
   /**
@@ -283,7 +279,7 @@ EXECUTE FUNCTION update_amc_stats();
       this.stats.totalFunds += funds.length;
       this.stats.shariahFunds += shariahFunds.length;
 
-      return shariahFunds.length;
+      return insertedCount;
     } catch (error) {
       console.error(`❌ Error storing funds:`, error.message);
       this.stats.errors.push({ operation: 'storeFunds', error: error.message });
@@ -447,16 +443,11 @@ async function main() {
 
   const collector = new ShariahFundsCollector(SUPABASE_URL, SUPABASE_KEY);
 
-  // Show setup instructions
-  await collector.setupDatabase();
-
-  console.log('Press Enter to continue with data collection (after running the SQL)...');
-  await new Promise(resolve => {
-    process.stdin.once('data', resolve);
-  });
-
-  // Run the collection
-  await collector.collectAllData();
+  if (process.argv[2] === 'setup') { await collector.setupDatabase(); return; }
+  try {
+    await collector.collectAllData();
+    if (collector.stats.errors.length) process.exitCode = 1;
+  } finally { await collector.mufap.close(); }
 
   // Example queries
   console.log('\n📖 Example Queries:');
@@ -471,7 +462,7 @@ console.log('Meezan Shariah Funds:', meezan);
 
 // Run if executed directly
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(error => { console.error(error.message); process.exitCode = 1; });
 }
 
 module.exports = ShariahFundsCollector;
