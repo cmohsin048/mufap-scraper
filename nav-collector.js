@@ -26,12 +26,17 @@ dns.setDefaultResultOrder('ipv4first');
 class NAVDataCollector {
   constructor(supabaseUrl, supabaseKey, options = {}) {
     // Surface the underlying network error code (ECONNRESET, EAI_AGAIN, ...)
-    // instead of undici's opaque "TypeError: fetch failed".
-    const resilientFetch = async (url, options) => {
+    // instead of undici's opaque "TypeError: fetch failed". Requests that get
+    // no response are aborted after 30s so withRetry can retry them, instead
+    // of hanging for undici's 5-minute default with no output.
+    const requestTimeoutMs = options.supabaseTimeoutMs ?? 30000;
+    const resilientFetch = async (url, fetchOptions = {}) => {
+      const timeout = AbortSignal.timeout(requestTimeoutMs);
+      const signal = fetchOptions.signal ? AbortSignal.any([fetchOptions.signal, timeout]) : timeout;
       try {
-        return await fetch(url, options);
+        return await fetch(url, { ...fetchOptions, signal });
       } catch (err) {
-        const cause = err.cause?.code || err.cause?.message || '';
+        const cause = timeout.aborted ? 'ETIMEDOUT' : (err.cause?.code || err.cause?.message || '');
         throw new Error(`fetch failed${cause ? ` (${cause})` : ''}`);
       }
     };

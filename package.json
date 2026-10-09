@@ -14,7 +14,12 @@
         "test:payout": "node --test test/payout-collector.test.js",
         "test:collectors": "node --test test/*.test.js",
         "test:returns": "node --test test/payout-returns.test.js",
-        "test:payout-db": "node --test test/payout-database.test.js"
+        "test:payout-db": "node --test test/payout-database.test.js",
+        "profiles": "node fund-profile-collector.js",
+        "profiles:check": "node fund-profile-collector.js --dry-run --limit 3",
+        "documents": "node document-collector.js",
+        "documents:check": "node document-collector.js --dry-run --amc AKD",
+        "test:documents": "node --test test/document-collectors.test.js"
     },
     "keywords": [
         "mufap",
@@ -30,7 +35,8 @@
         "axios": "^1.6.2",
         "cheerio": "^1.1.2",
         "dotenv": "^16.3.1",
-        "playwright-core": "^1.63.0"
+        "playwright-core": "^1.63.0",
+        "unpdf": "^1.8.1"
     },
     "devDependencies": {
         "@electric-sql/pglite": "^0.5.8",
