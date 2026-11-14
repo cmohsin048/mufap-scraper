@@ -428,10 +428,15 @@ async function main(args = process.argv.slice(2)) {
     }
     const dryRun = flag('--dry-run');
     const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+    // Documents are stored in the AI project (AI_SUPABASE_URL); the fund catalog stays in the main project.
+    const docsDb = process.env.AI_SUPABASE_URL
+      ? createClient(process.env.AI_SUPABASE_URL, process.env.AI_SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
+      : db;
+    console.log(`Documents database: ${process.env.AI_SUPABASE_URL ? 'AI project' : 'main project'}`);
     const { data: catalog, error } = await db.from('funds').select('fund_id,fund_name,amc_id,category_name,amcs(amc_name)').eq('is_shariah_compliant', true);
     if (error) throw new Error(`Catalog unavailable: ${error.message}`);
     if (!dryRun) {
-      const check = await db.from('fund_documents').select('id', { head: true, count: 'exact' });
+      const check = await docsDb.from('fund_documents').select('id', { head: true, count: 'exact' });
       if (check.error) throw new Error(`fund_documents is not available (${check.error.message}). Apply migrations/001-ai-assistant.sql first.`);
     }
     let sources = SOURCES;
@@ -459,7 +464,7 @@ async function main(args = process.argv.slice(2)) {
       const byType = documents.reduce((acc, d) => ({ ...acc, [d.doc_type]: (acc[d.doc_type] || 0) + 1 }), {});
       console.log(`  ${documents.length} documents ${JSON.stringify(byType)}, covering ${covered.size}/${funds.length} funds`);
       for (const doc of documents.slice(0, 6)) console.log(`    ${doc.doc_type} ${doc.document_date || '----'} ${doc.page_count}p ${doc.title.slice(0, 70)} -> ${doc.funds.length} fund(s)`);
-      if (!dryRun) console.log(`  stored ${await storeDocuments(db, documents)} documents`);
+      if (!dryRun) console.log(`  stored ${await storeDocuments(docsDb, documents)} documents`);
       summary.push({ amc: source.amc, funds: funds.length, covered: covered.size, documents: documents.length, byType });
     }
     fs.writeFileSync(path.join(ROOT, 'summary.json'), JSON.stringify(summary, null, 2));
